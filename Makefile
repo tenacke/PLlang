@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -g -O3 -mmacosx-version-min=14.4
-LDFLAGS=-ll -ly
+CFLAGS=-Wall -Wextra -g -O3 
+LDFLAGS=-ll
 
 
 plcc: lex.yy.c y.tab.c

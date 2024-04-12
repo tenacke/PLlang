@@ -18,24 +18,28 @@ int yylex(void);
 
 %left PLUS MINUS
 %left TIMES DIVIDE MOD
+%left THEN
+%right ELSE
 %nonassoc EQ NE LT LE GT GE
 
 
 %start program
 
 %%
-program: block DOT
+program: block DOT | block error {yyerrok;}
     ;
 
 block: constDecl varDecl funcDecl procDecl statement
     ;
 
 constDecl: CONST constAssList SEMI 
-    | /* empty */
+    | CONST constAssList error {yyerrok;}
+    |/* empty */
     ;
 
 constAssList: assignment 
     | constAssList COMMA assignment
+    | error assignment {yyerrok;}
     ;
 
 assignment: ID EQ NUM 
@@ -52,28 +56,35 @@ funcDecl: funcDecl FUNCTION ID LPAREN paramList RPAREN SEMI block SEMI
 
 paramList: ID
     | paramList COMMA ID
+    | error {yyerrok;}
     ;
 
 varDecl: VAR varDeclList SEMI
+    | VAR varDeclList error {yyerrok;}
     | /* empty */
     ;
 
 varDeclList: variable
     | varDeclList COMMA variable
+    | varDeclList variable error {yyerrok;}
     ;
 
 variable: ID
     | ID LBRACKET expression RBRACKET
+    /* TODO: error */
     ;
 
 procDecl: procDecl PROCEDURE ID SEMI block SEMI
+    | procDecl PROCEDURE ID SEMI block error {yyerrok;}
+    | procDecl PROCEDURE ID error block SEMI  {yyerrok;}
+    /* TODO: more errors */
     | /* empty */
     ;
 
 statement: variable ASSIGN expression 
     | CALL ID // procedure call
     | BEG statementList END // compound statement
-    | IF condition THEN statement 
+    | IF condition THEN statement %prec THEN
     | IF condition THEN statement ELSE statement 
     | WHILE condition DO statement
     | FOR ID ASSIGN expression TO expression DO statement
@@ -82,12 +93,12 @@ statement: variable ASSIGN expression
     | WRITELN LPAREN variable RPAREN { /* write variable with newline */ }
     | BREAK
     | RETURN expression
-    //| error RPAREN { yyerrok; } // error recovery but use wisely
+    | error {yyerrok;}
     ;
 
 statementList: statement
     | statementList SEMI statement
-    //| error SEMI { yyerrok; }
+    | statementList error statement { yyerrok; }
     ;
 
 condition: ODD expression { $$ = $2 % 2; }
@@ -97,6 +108,7 @@ condition: ODD expression { $$ = $2 % 2; }
     | expression LE expression { $$ = $1 <= $3; }
     | expression GT expression { $$ = $1 > $3; }
     | expression GE expression { $$ = $1 >= $3; }
+    | expression error expression {yyerrok;}
     ;
 
 expression: term { $$ = $1; }
@@ -116,10 +128,12 @@ factor: variable { $$ = $1; }
     | NUM { $$ = $1; }
     | LPAREN expression RPAREN { $$ = $2; }
     | ID LPAREN argList RPAREN { /* function call */ }
+    | error {yyerrok;}
     ;
 
-argList: expression
+argList: expression 
     | argList COMMA expression
+    | argList error expression {yyerrok;}
     ;
 
 

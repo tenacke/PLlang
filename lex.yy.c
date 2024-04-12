@@ -1,5 +1,5 @@
 
-#line 2 "lex.yy.c"
+#line 3 "lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -351,8 +351,8 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
-#define YY_NUM_RULES 48
-#define YY_END_OF_BUFFER 49
+#define YY_NUM_RULES 47
+#define YY_END_OF_BUFFER 48
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -362,7 +362,7 @@ struct yy_trans_info
 	};
 static const flex_int16_t yy_accept[113] =
     {   0,
-        0,    0,   49,   47,   46,   45,   32,   24,   25,   30,
+        0,    0,   48,   47,   46,   45,   32,   24,   25,   30,
        28,   41,   29,   42,   31,   44,   47,   40,   34,   33,
        36,   43,   22,   23,   43,   43,   43,   43,   43,   43,
        43,   43,   43,   43,   43,   43,   26,   27,    1,   44,
@@ -522,8 +522,8 @@ extern int yyparse();
 extern int yywrap();
 int main(int argc, char *argv[]);
 
-#line 525 "lex.yy.c"
 #line 526 "lex.yy.c"
+#line 527 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -742,7 +742,7 @@ YY_DECL
 	{
 #line 14 "lexer.l"
 
-#line 745 "lex.yy.c"
+#line 746 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1033,14 +1033,9 @@ YY_RULE_SETUP
 case 47:
 YY_RULE_SETUP
 #line 62 "lexer.l"
-{ }
-	YY_BREAK
-case 48:
-YY_RULE_SETUP
-#line 63 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 1043 "lex.yy.c"
+#line 1039 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2045,7 +2040,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 63 "lexer.l"
+#line 62 "lexer.l"
 
 
 int yywrap() 

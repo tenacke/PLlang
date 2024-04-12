@@ -59,7 +59,6 @@ int main(int argc, char *argv[]);
 [0-9]+ { return NUM; }
 \n { yylineno++; }
 [ \t] { }
-. { }
 %%
 
 int yywrap() 
