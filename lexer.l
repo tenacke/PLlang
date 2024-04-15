@@ -59,6 +59,7 @@ int main(int argc, char *argv[]);
 [0-9]+ { return NUM; }
 \n { yylineno++; }
 [ \t] { }
+. { printf("Error: Unknown character at line %d: %s\n", yylineno, yytext); }
 %%
 
 int yywrap() 
