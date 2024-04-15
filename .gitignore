@@ -1,2 +1,4 @@
 lex
 plcc*
+y.tab.*
+lex.yy.c
