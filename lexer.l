@@ -11,6 +11,8 @@ int main(int argc, char *argv[]);
 
 %}
 
+%option yylineno yywrap nounput
+
 %%
 "/*" { comment(); }
 
@@ -57,15 +59,9 @@ int main(int argc, char *argv[]);
 "." { return DOT; }
 [a-zA-Z_][a-zA-Z0-9_]* { return ID; }
 [0-9]+ { return NUM; }
-\n { yylineno++; }
-[ \t] { }
+[ \t\n] { }
 ^[a-zA-Z0-9_\.,;:=<>\+\-\*%\[\]\{\}\(\)] { printf("Error: Unknown character at line %d: %s\n", yylineno, yytext); }
 %%
-
-int yywrap() 
-{
-	return(1);
-}
 
 void comment() 
 {

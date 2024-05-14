@@ -2,7 +2,8 @@
 #include <stdio.h>
 
 extern int yylineno;
-
+extern int column;
+extern char *lineptr;
 void yyerror(const char *s);
 int yylex(void);
 
@@ -22,24 +23,25 @@ int yylex(void);
 %right ELSE
 %nonassoc EQ NE LT LE GT GE
 
+%define parse.error verbose
 
 %start program
 
 %%
-program: block DOT | block error {yyerrok; printf("Dot expected\n");}
+program: block DOT | block error {yyerrok;}
     ;
 
 block: constDecl varDecl funcDecl procDecl statement
     ;
 
 constDecl: CONST constAssList SEMI 
-    | CONST constAssList error {yyerrok; printf("Semicolon expected\n");}
+    | CONST constAssList error {yyerrok; }
     |/* empty */
     ;
 
 constAssList: assignment 
     | constAssList COMMA assignment
-    | error assignment {yyerrok; printf("Comma expected\n");}
+    | error assignment {yyerrok;}
     ;
 
 assignment: ID EQ NUM 
@@ -56,17 +58,17 @@ funcDecl: funcDecl FUNCTION ID LPAREN paramList RPAREN SEMI block SEMI
 
 paramList: ID
     | paramList COMMA ID
-    | error {yyerrok; printf("Comma expected\n");}
+    | error {yyerrok; }
     ;
 
 varDecl: VAR varDeclList SEMI
-    | VAR varDeclList error {yyerrok; printf("Semicolon expected\n");}
+    | VAR varDeclList error {yyerrok; }
     | /* empty */
     ;
 
 varDeclList: variable
     | varDeclList COMMA variable
-    | varDeclList variable error {yyerrok; printf("Comma expected\n");}
+    | varDeclList variable error {yyerrok; }
     ;
 
 variable: ID
@@ -75,30 +77,34 @@ variable: ID
     ;
 
 procDecl: procDecl PROCEDURE ID SEMI block SEMI
-    | procDecl PROCEDURE ID SEMI block error {yyerrok; printf("Semicolon expected after procedure definition\n");}
-    | procDecl PROCEDURE ID error block SEMI  {yyerrok; printf("Semicolon expected before code block\n");}
+    | procDecl PROCEDURE ID SEMI block error {yyerrok; }
+    | procDecl PROCEDURE ID error block SEMI  {yyerrok; }
     /* TODO: more errors */
     | /* empty */
     ;
 
 statement: variable ASSIGN expression 
     | CALL ID // procedure call
+    | error ID { }
     | BEG statementList END // compound statement
     | IF condition THEN statement %prec THEN
     | IF condition THEN statement ELSE statement 
+    | IF condition error { } 
     | WHILE condition DO statement
+    | WHILE condition error { }
     | FOR ID ASSIGN expression TO expression DO statement
+    | FOR error { }
     | READ LPAREN variable RPAREN { /* read variable */ }
     | WRITE LPAREN variable RPAREN { /* write variable */ }
     | WRITELN LPAREN variable RPAREN { /* write variable with newline */ }
     | BREAK
     | RETURN expression
-    | error {yyerrok; printf("Invalid statement\n");}
+    | error {  }
     ;
 
 statementList: statement
     | statementList SEMI statement
-    | statementList error statement { yyerrok; printf("Semicolon expected\n");}
+    | statementList error statement { yyerrok; }
     ;
 
 condition: ODD expression { $$ = $2 % 2; }
@@ -108,7 +114,7 @@ condition: ODD expression { $$ = $2 % 2; }
     | expression LE expression { $$ = $1 <= $3; }
     | expression GT expression { $$ = $1 > $3; }
     | expression GE expression { $$ = $1 >= $3; }
-    | expression error expression {yyerrok; printf("Comparation expected\n");}
+    | expression error expression {yyerrok; }
     ;
 
 expression: term { $$ = $1; }
@@ -128,17 +134,17 @@ factor: variable { $$ = $1; }
     | NUM { $$ = $1; }
     | LPAREN expression RPAREN { $$ = $2; }
     | ID LPAREN argList RPAREN { /* function call */ }
-    | error {yyerrok; printf("Factor expected\n");}
+    | error { }
     ;
 
 argList: expression 
     | argList COMMA expression
-    | argList error expression {yyerrok; printf("Comma expected\n"); }
+    | argList error expression {yyerrok; }
     ;
 
 
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "%s at %d: ", s, yylineno);
+    fprintf(stderr,"error: %s in line %d\n", s, yylineno);
 }
