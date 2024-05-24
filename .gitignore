@@ -1,4 +1,9 @@
 lex
-plcc*
+mypl*
 y.tab.*
 lex.yy.c
+*.o
+test*
+main.c
+main.ll
+.vscode/

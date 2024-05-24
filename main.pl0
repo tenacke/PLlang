@@ -1,18 +1,26 @@
 const max = {200, 3300}, cu = 3;
-var arg, ret;
+var arg, ret, emre[3];
+
+function isOdd(number);
+	if odd number then
+		return 1
+	else 
+		return 0;
 
 procedure isprime;
-var i, a;
+var i, a, kilic[2];
 begin
 	ret := 1;
 	i := 2;
 	while i < arg do
 	begin
-		if arg * i = arg then
+		if arg % i = 0 then
 		begin
+			emre[2] := 0;
+			kilic[0] := 2;
 			ret := 0;
 			i := arg
-		end;
+		end else
 		i :=  i + 1
 	end
 end;
@@ -20,11 +28,12 @@ end;
 procedure primes;
 begin
 	arg := 2;
-	while arg < max do
+	while arg < cu do
 	begin
 	    call isprime;
 		if ret = 1 then write(arg);
-		arg := arg + 1
+		arg := arg + 1;
+		emre[1] := isOdd(arg)
 	end
 end;
 
