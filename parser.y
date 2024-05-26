@@ -1,190 +1,183 @@
 %{
-#include <cstdio>
-#include <iostream>
-#include <string>
-#include <cstring>
-#include "mylib.h"
+#include "defs.h"
+#include <stdio.h>
 
 extern int yylineno;
-extern int column;
-void yyerror(const char *s);
+void yyerror(const char*);
 int yylex(void);
-char *append(char* old, char *s);
-
-using namespace std;
 
 %}
 
 %union {
-    const char *str;
+    void *ptr;
 }
 
-%token <str> ID NUM
-%token <str> IF THEN ELSE WHILE DO FOR BREAK RETURN BEG END TO
-%token <str> EQ NE LT LE GT GE
-%token <str> ASSIGN SEMI COMMA DOT LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
-%token <str> PLUS MINUS TIMES DIVIDE MOD
-%token <str> CONST VAR FUNCTION PROCEDURE CALL ODD READ WRITE WRITELN
+%define parse.error verbose
+
+%token <ptr> ID NUM
+%token IF THEN ELSE WHILE DO FOR BREAK RETURN BEG END TO
+%token EQ NE LT LE GT GE
+%token ASSIGN SEMI COMMA DOT LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
+%token PLUS MINUS TIMES DIVIDE MOD
+%token CONST VAR FUNCTION PROCEDURE CALL ODD READ WRITE WRITELN
 
 %nonassoc IFX
 %nonassoc ELSE
 
-%type <str> block constDecl constAssList constAssign numList funcDecl paramList 
-%type <str> global_block globalConstDecl globalConstAssList globalConstAssign globalVarDecl globalVarDeclList globalVariableDec
-%type <str> varDecl varDeclList variableDec procDecl statement statementList 
-%type <str> condition expression term factor argList variable
+%type <ptr> block constDecl constAssList constAssign numList funcDecl paramList 
+%type <ptr> global_block globalConstDecl globalConstAssList globalConstAssign globalVarDecl globalVarDeclList globalVariableDec
+%type <ptr> varDecl varDeclList variableDec procDecl statement statementList 
+%type <ptr> condition expression term factor argList
 
 
 
 %start program
 
 %%
-program: global_block DOT { generate_llvm_code(string($1)); }
+program: global_block DOT { generate_llvm_code($1); }
     | global_block error { yyerrok; }
     ;
 
-global_block: globalConstDecl globalVarDecl funcDecl procDecl statement { $$ = $5; }
+global_block: globalConstDecl globalVarDecl funcDecl procDecl statement { $$ = create_global_block($1, $2, $3, $4, $5);}
     ;
 
-block: constDecl varDecl statement { $$ = $3; }
+block: constDecl varDecl statement { $$ = create_simple_block($1, $2, $3); }
     ;
 
-globalConstDecl: CONST globalConstAssList SEMI { }
+globalConstDecl: CONST globalConstAssList SEMI { $$ = resolve_global_const_assignment($2); }
     | CONST globalConstAssList error { yyerrok; }
-    | { }
+    | %empty { $$ = NULL; }
     ;
 
-globalConstAssList: globalConstAssign { }
-    | globalConstAssList COMMA globalConstAssign { }
+globalConstAssList: globalConstAssign { $$ = add_global_const_assignment($1); }
+    | globalConstAssList COMMA globalConstAssign { $$ = append_global_const_assignment($1, $3); }
     ;
 
-globalConstAssign: ID EQ NUM { declare_global_constant($1, $3); }
-    | ID EQ LBRACE numList RBRACE { declare_global_constant_array($1, $4); }
+globalConstAssign: ID EQ NUM { $$ = create_global_const_assignment($1, $3); }
+    | ID EQ LBRACE numList RBRACE { $$ = create_global_const_array_assignment($1, $4); }
     ;
 
-constDecl: CONST constAssList SEMI { }
+constDecl: CONST constAssList SEMI { $$ = resolve_local_const_assignment($2); }
     | CONST constAssList error { yyerrok; }
-    | { }
+    | %empty { $$ = NULL; }
     ;
 
-constAssList: constAssign { }
-    | constAssList COMMA constAssign { }
+constAssList: constAssign { $$ = add_local_const_assignment($1); }
+    | constAssList COMMA constAssign { $$ = append_local_const_assignment($1, $3); }
     | error constAssign { yyerrok; }
     ;
 
-constAssign: ID EQ NUM { declare_local_constant($1, $3); }
-    | ID EQ LBRACE numList RBRACE { declare_local_constant_array($1, $4);}
+constAssign: ID EQ NUM { $$ = create_local_const_assignment($1, $3); }
+    | ID EQ LBRACE numList RBRACE { $$ = create_local_const_array_assignment($1, $4); }
     ;
 
-numList: NUM { }
-    | numList COMMA NUM { }
+numList: NUM { $$ = add_num_list($1); }
+    | numList COMMA NUM { $$ = append_num_list($1, $3); }
     ;
 
-globalVarDecl: VAR globalVarDeclList SEMI { }
+globalVarDecl: VAR globalVarDeclList SEMI { $$ = resolve_global_var_assignment($2); }
     | VAR globalVarDeclList error { yyerrok; }
-    | { }
+    | %empty { $$ = NULL; }
     ;
 
-globalVarDeclList: globalVariableDec { }
-    | globalVarDeclList COMMA globalVariableDec { }
+globalVarDeclList: globalVariableDec { $$ = add_global_var_assignment($1); }
+    | globalVarDeclList COMMA globalVariableDec { $$ = append_global_var_assignment($1, $3); }
     | globalVarDeclList globalVariableDec error { yyerrok; }
     ;
 
-globalVariableDec: ID { declare_global_variable($1); }
-    | ID LBRACKET NUM RBRACKET { declare_global_variable_array($1, $3);}
+globalVariableDec: ID { $$ = create_global_var_assignment($1); }
+    | ID LBRACKET NUM RBRACKET { $$ = create_global_var_array_assignment($1, $3); }
     ;
 
-varDecl: VAR varDeclList SEMI { }
+varDecl: VAR varDeclList SEMI { $$ = resolve_local_var_assignment($2); }
     | VAR varDeclList error { yyerrok; }
-    | { }
+    | %empty { $$ = NULL; }
     ;
 
-varDeclList: variableDec { }
-    | varDeclList COMMA variableDec { }
+varDeclList: variableDec { $$ = add_local_var_assignment($1); }
+    | varDeclList COMMA variableDec { $$ = append_local_var_assignment($1, $3); }
     | varDeclList variableDec error { yyerrok; }
     ;
 
-variableDec: ID { declare_local_variable($1); }
-    | ID LBRACKET NUM RBRACKET { declare_local_variable_array($1, $3); }
+variableDec: ID { $$ = create_local_var_assignment($1); }
+    | ID LBRACKET NUM RBRACKET { $$ = create_local_var_array_assignment($1, $3); }
     ;
 
-procDecl: procDecl PROCEDURE ID SEMI block SEMI { generate_procedure($3, string($5)); }
+procDecl: procDecl PROCEDURE ID SEMI block SEMI { $$ = append_proc_decl($1, $3, $5); }
     | procDecl PROCEDURE ID SEMI block error { yyerrok; }
     | procDecl PROCEDURE ID error block SEMI  { yyerrok; }
-    | { }
+    | %empty { $$ = NULL; }
     ;
 
-funcDecl: funcDecl FUNCTION ID LPAREN paramList RPAREN SEMI block SEMI { generate_function($3, $5, string($8));}
+funcDecl: funcDecl FUNCTION ID LPAREN paramList RPAREN SEMI block SEMI { $$ = append_func_decl($1, $3, $5, $8); }
     | funcDecl FUNCTION ID LPAREN paramList RPAREN SEMI block error { yyerrok; }
     | funcDecl FUNCTION ID LPAREN paramList RPAREN error block SEMI  { yyerrok; }
-    | { }
+    | %empty { $$ = NULL; }
     ;
 
-paramList: ID { }
-    | paramList COMMA ID { }
-    | error { yyerrok; }
+paramList: ID { $$ = create_param_list($1); }
+    | paramList COMMA ID { $$ = append_param_list($1, $3); }
+    | error { }
     ;
 
-statement: variable ASSIGN expression { $$ = strdup(store_variable($1, $3).c_str());}
-    | CALL ID { $$ = strdup(procedure_call($2).c_str()); }
+statement: ID ASSIGN expression { $$ = create_store_statement($1, $3); }
+    | ID LBRACKET expression RBRACKET ASSIGN expression { $$ = create_store_array_statement($1, $3, $6); }
+    | CALL ID { $$ = create_call_statement($2); }
     | error ID { }
-    | BEG statementList END { $$ = $2; }
-    | IF condition THEN statement %prec IFX { $$ = strdup(if_then(string($2), string($4)).c_str()); } 
-    | IF condition THEN statement ELSE statement { $$ = strdup(if_else(string($2), string($4), string($6)).c_str()); }
+    | BEG statementList END { $$ = resolve_statement_list($2); }
+    | IF condition THEN statement %prec IFX { $$ = create_if_statement($2, $4, NULL); } 
+    | IF condition THEN statement ELSE statement { $$ = create_if_statement($2, $4, $6); }
     | IF condition error { } 
-    | WHILE condition DO statement { $$ = strdup(while_loop(string($2), $4).c_str()); }
+    | WHILE condition DO statement { $$ = create_while_statement($2, $4); }
     | WHILE condition error { }
-    | FOR ID ASSIGN expression TO expression DO statement { }
+    | FOR ID ASSIGN expression TO expression DO statement { $$ = create_for_statement($2, $4, $6, $8); }
     | FOR error { }
-    | READ LPAREN variable RPAREN { $$ = strdup(read_variable($3).c_str()); }
-    | WRITE LPAREN variable RPAREN { $$ = strdup(write_variable($3).c_str()); }
-    | WRITELN LPAREN variable RPAREN { $$ = strdup(writeln_variable($3).c_str()); }
-    | BREAK { $$ = strdup(break_loop().c_str()); }
-    | RETURN expression { $$ = strdup(return_value($2).c_str()); }
-    | error {  }
+    | READ LPAREN ID RPAREN { $$ = create_read_statement($3); }
+    | WRITE LPAREN ID RPAREN { $$ = create_write_statement($3); }
+    | WRITELN LPAREN ID RPAREN { $$ = create_writeln_statement($3); }
+    | BREAK { $$ = create_break_statement(); }
+    | RETURN expression { $$ = create_return_statement($2); }
+    | error { }
     ;
 
-statementList: statement { $$ = $1; }
-    | statementList SEMI statement { $$ = strdup((string($1) + "\n" + string($3)).c_str());}
+statementList: statement { $$ = create_statement_list($1); }
+    | statementList SEMI statement { $$ = append_statement_list($1, $3); }
     | statementList error statement { yyerrok; }
     ;
 
-condition: ODD expression { add_condition(do_operation("srem", $2, "2")); $$ = strdup(wrap_expression().c_str()); }
-    | expression EQ expression { add_condition(do_operation("icmp eq", $1, $3)); $$ = strdup(wrap_expression().c_str()); } 
-    | expression NE expression { add_condition(do_operation("icmp ne", $1, $3)); $$ = strdup(wrap_expression().c_str()); } 
-    | expression LT expression { add_condition(do_operation("icmp slt", $1, $3)); $$ = strdup(wrap_expression().c_str()); } 
-    | expression LE expression { add_condition(do_operation("icmp sle", $1, $3)); $$ = strdup(wrap_expression().c_str()); }
-    | expression GT expression { add_condition(do_operation("icmp sgt", $1, $3)); $$ = strdup(wrap_expression().c_str()); } 
-    | expression GE expression  { add_condition(do_operation("icmp sge", $1, $3)); $$ = strdup(wrap_expression().c_str()); } 
+condition: ODD expression { $$ = create_odd_condition($2); }
+    | expression EQ expression { $$ = create_eq_condition($1, $3); } 
+    | expression NE expression { $$ = create_ne_condition($1, $3); } 
+    | expression LT expression { $$ = create_lt_condition($1, $3); } 
+    | expression LE expression { $$ = create_le_condition($1, $3); }
+    | expression GT expression { $$ = create_gt_condition($1, $3); } 
+    | expression GE expression  { $$ = create_ge_condition($1, $3); } 
     | expression error expression { yyerrok; }
     ;
 
 expression: term { $$ = $1; }
     | PLUS term { $$ = $2; }
-    | MINUS term { $$ = do_operation("sub", "0", $2); }
-    | expression PLUS term { $$ = do_operation("add", $1, $3); }
-    | expression MINUS term { $$ = do_operation("sub", $1, $3); }
+    | MINUS term { $$ = create_negate_expression($2); }
+    | expression PLUS term { $$ = create_add_expression($1, $3); }
+    | expression MINUS term { $$ = create_sub_expression($1, $3); }
     ;
 
-term: factor { $$ = $1;}
-    | term TIMES factor { $$ = do_operation("mul", $1, $3); }
-    | term DIVIDE factor { $$ = do_operation("div", $1, $3); }
-    | term MOD factor { $$ = do_operation("srem", $1, $3); }
+term: factor { $$ = $1; }
+    | term TIMES factor { $$ = create_mul_expression($1, $3); }
+    | term DIVIDE factor { $$ = create_div_expression($1, $3); }
+    | term MOD factor { $$ = create_mod_expression($1, $3); }
     ;
 
-factor: variable { $$ = load_variable($1); }
-    | NUM { $$ = $1; }
+factor: ID { $$ = create_id_expression($1); }
+    | ID LBRACKET expression RBRACKET { $$ = create_array_expression($1, $3); }
+    | NUM { $$ = create_num_expression($1); }
     | LPAREN expression RPAREN { $$ = $2; }
-    | ID LPAREN argList RPAREN { $$ = function_call($1, $3); }
+    | ID LPAREN argList RPAREN { $$ = create_call_expression($1, $3); }
     | error { }
     ;
 
-variable: ID { $$ = $1; }
-    | ID LBRACKET expression RBRACKET { $$ = $1 }
-    ;
-
-argList: expression { }
-    | argList COMMA expression { }
+argList: expression { $$ = create_arg_list($1); }
+    | argList COMMA expression { $$ = append_arg_list($1, $3); }
     | argList error expression { yyerrok; }
     ;
 
@@ -193,11 +186,5 @@ argList: expression { }
 
 void yyerror(const char *s) {
     fprintf(stderr,"error: %s in line %d\n", s, yylineno);
-}
-
-char *append(char* old, char *s) {
-    string str = string(old);
-    str += "\n";
-    str += s;
-    return strdup(str.c_str());
+    set_error();
 }

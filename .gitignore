@@ -1,7 +1,7 @@
 lex
 mypl*
-y.tab.*
-lex.yy.c
+parser.tab.*
+lex.yy.*
 *.o
 test*
 main.c

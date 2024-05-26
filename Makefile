@@ -1,27 +1,31 @@
 CC=g++
-CFLAGS=-Wall -Wextra -g -Ofast -fpermissive -std=c++11
-LDFLAGS=-ll -mmacosx-version-min=14.4
-BISONFLAGS=-dy -Dparse.error=verbose -Wcounterexamples -Wall -Wno-empty-rule -Wno-precedence
+LEX=flex
+YACC=bison
+CPPFLAGS=-Wall -Wextra -g -Ofast -fpermissive -std=c++17 -I/opt/homebrew/opt/flex/include
+LDFLAGS=-mmacosx-version-min=14.4 -L/opt/homebrew/opt/flex/lib 
+LEXFLAGS=
+BISONFLAGS=-Wcounterexamples -Wall -Wno-precedence -d
 
 
-mypl: mylib.o y.tab.o  lex.yy.o
-	$(CC) -o mypl lex.yy.o y.tab.o mylib.o $(LDFLAGS)
+mypl: parser.tab.o generator.o lex.yy.o
+	$(CC) $(CPPFLAGS) -o mypl lex.yy.o parser.tab.o generator.o $(LDFLAGS)
 
-y.tab.o: y.tab.c
-	$(CC) $(CFLAGS) -c y.tab.c
+parser.tab.o: parser.tab.c parser.tab.h
+	$(CC) $(CPPFLAGS) -c parser.tab.c
 
-lex.yy.o: lex.yy.c
-	$(CC) $(CFLAGS) -c lex.yy.c
+parser.tab.c parser.tab.h: parser.y
+	$(YACC) $(BISONFLAGS) parser.y
 
-lex.yy.c: lexer.l y.tab.c
-	flex lexer.l
+lex.yy.o: lex.yy.c parser.tab.h
+	$(CC) $(CPPFLAGS) -c lex.yy.c
 
-y.tab.c: parser.y
-	bison $(BISONFLAGS) parser.y
+lex.yy.c: lexer.l
+	$(LEX) $(LEXFLAGS) lexer.l
 
-mylib.o: mylib.cpp mylib.h
-	$(CC) $(CFLAGS) -c mylib.cpp
+generator.o: generator.cpp defs.h generator.hpp
+	$(CC) $(CPPFLAGS) -c generator.cpp
 
 clean:
-	rm -f mypl lex.yy.c y.tab.c y.tab.h *.o
-	if [ -d mypl.dSYM ]; then rm -r mypl.dSYM; fi
+	rm -f mypl lex.yy.c parser.tab.c parser.tab.h *.o
+	if [ -d mypl.dSYM ]; then rm -rf mypl.dSYM; fi
+	
