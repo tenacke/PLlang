@@ -147,7 +147,18 @@ string store_variable(const char* name, const char* value) {
         var = symbol_table[string(name)];
     }
     string exp = wrap_expression();
-    string stm = "store i32 " + string(value) + ", i32* " + var + "";
+    string stm = "store i32 " + string(value) + ", i32* " + var;
+    return exp + "  " + stm;
+}
+
+string store_array_element(const char* name, const char* index, const char* value) {
+    string var = local_symbol_table[string(name)];
+    if (var.empty()) {
+        var = symbol_table[string(name)];
+    }
+    string type = arrey_symbol_table[string(name)];
+    string exp = wrap_expression();
+    string stm = "store i32 " + string(value) + ", i32* getelementptr inbounds (" + type + ", i32* " + var + ", i32 " + index + ")";
     return exp + "  " + stm;
 }
 

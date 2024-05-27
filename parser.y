@@ -125,7 +125,8 @@ paramList: ID { }
     | error { yyerrok; }
     ;
 
-statement: variable ASSIGN expression { $$ = strdup(store_variable($1, $3).c_str());}
+statement: ID ASSIGN expression { $$ = strdup(store_variable($1, $3).c_str());}
+    | ID LBRACKET expression RBRACKET ASSIGN expression { $$ = strdup(store_array($1, $3, $6).c_str()); }
     | CALL ID { $$ = strdup(procedure_call($2).c_str()); }
     | error ID { }
     | BEG statementList END { $$ = $2; }
@@ -180,7 +181,7 @@ factor: variable { $$ = load_variable($1); }
     ;
 
 variable: ID { $$ = $1; }
-    | ID LBRACKET expression RBRACKET { $$ = $1 }
+    | ID LBRACKET expression RBRACKET { $$ = array_access($1, $3);}
     ;
 
 argList: expression { }

@@ -17,6 +17,7 @@ void declare_local_variable_array(const char* name, const char* size);
 string wrap_expression(void);
 // void wrap_statement(void);  
 string store_variable(const char* name, const char* value);
+string store_array_element(const char* name, const char* index, const char* value);
 
 void add_condition(const char* condition);
 const char* load_variable(const char* name);
