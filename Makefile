@@ -1,9 +1,9 @@
 CC=g++
 LEX=flex
 YACC=bison
-CPPFLAGS=-Wall -Wextra -g -Ofast -fpermissive -std=c++17 -I/opt/homebrew/opt/flex/include
-LDFLAGS=-mmacosx-version-min=14.4 -L/opt/homebrew/opt/flex/lib 
-LEXFLAGS=
+CPPFLAGS=-Wall -Wextra -g -Ofast -fpermissive -std=c++17 
+LDFLAGS=-mmacosx-version-min=14.4 
+LEXFLAGS=--nomain
 BISONFLAGS=-Wcounterexamples -Wall -Wno-precedence -d
 
 

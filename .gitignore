@@ -3,7 +3,8 @@ mypl*
 parser.tab.*
 lex.yy.*
 *.o
+*.bc
+*.ll
 test*
 main.c
-main.ll
 .vscode/
