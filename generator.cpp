@@ -17,11 +17,13 @@ void set_error() { error = true; }
 extern FILE *yyin;
 extern int yyparse();
 
+stack<LoopStatement *> loop_stack;
 map<string, string> var_symbol_table;
 map<string, string> array_size_table;
 vector<string> literals;
 int literal_count = 0;
 int variable_count = 0;
+int break_count = 0;
 
 int main(int argc, char *argv[]) {
   // Usage: mypl [-O] <input_file>
@@ -43,6 +45,7 @@ int main(int argc, char *argv[]) {
 string create_variable() { return "%" + to_string(variable_count++); }
 string create_label() { return to_string(variable_count++); }
 string reset_variable_count() { return to_string(variable_count = 0); }
+string create_break_var() { return "#" + to_string(break_count++); }
 
 void *create_id(char *ID) {
   IDNode *idNode = new IDNode(string(ID));
@@ -757,6 +760,8 @@ string IfStatement::generate_llvm() {
 string WhileStatement::generate_llvm() {
   string llvm_code = "";
 
+  loop_stack.push(this);
+
   Condition *condition = this->condition;
   Statement *statement = this->statement;
 
@@ -765,6 +770,15 @@ string WhileStatement::generate_llvm() {
   string loop_label = create_label();
   string statement_code = statement->generate_llvm();
   string end_label = create_label();
+
+  if (has_break()) {
+    for (size_t i = 0; i < this->break_statements.size(); i++) {
+      statement_code.replace(statement_code.find(this->break_statements[i]),
+                             this->break_statements[i].length(), end_label);
+    }
+  }
+
+  loop_stack.pop();
 
   llvm_code += "   br label %" + condition_label + "\n";
   llvm_code += condition_label + ":\n";
@@ -779,7 +793,52 @@ string WhileStatement::generate_llvm() {
   return llvm_code;
 }
 
-string ForStatement::generate_llvm() { return ""; }
+string ForStatement::generate_llvm() {
+  string llvm_code = "";
+
+  loop_stack.push(this);
+
+  Statement *store_statement =
+      new StoreStatement(this->ID, this->start_expression);
+  Condition *condition =
+      new LtCondition(new IdExpression(this->ID), this->end_expression);
+  Statement *increment_statement = new StoreStatement(
+      this->ID, new AddExpression(new IdExpression(this->ID),
+                                  new NumExpression(new NumNode("1"))));
+
+  Statement *statement = this->statement;
+
+  string store_code = store_statement->generate_llvm();
+  string condition_label = create_label();
+  string condition_code = condition->generate_llvm();
+  string loop_label = create_label();
+  string loop_code = statement->generate_llvm();
+  string increment_code = increment_statement->generate_llvm();
+  string end_label = create_label();
+
+  if (has_break()) {
+    for (size_t i = 0; i < this->break_statements.size(); i++) {
+      loop_code.replace(loop_code.find(this->break_statements[i]),
+                        this->break_statements[i].length(), end_label);
+    }
+  }
+
+  loop_stack.pop();
+
+  llvm_code += store_code;
+  llvm_code += "   br label %" + condition_label + "\n";
+  llvm_code += condition_label + ":\n";
+  llvm_code += condition_code;
+  llvm_code += "   br i1 " + condition->get_variable() + ", label %" +
+               loop_label + ", label %" + end_label + "\n";
+  llvm_code += loop_label + ":\n";
+  llvm_code += loop_code;
+  llvm_code += increment_code;
+  llvm_code += "   br label %" + condition_label + "\n";
+  llvm_code += end_label + ":\n";
+
+  return llvm_code;
+}
 
 string ReadStatement::generate_llvm() {
   string llvm_code = "";
@@ -816,7 +875,14 @@ string WritelnStatement::generate_llvm() {
   return llvm_code;
 }
 
-string BreakStatement::generate_llvm() { return ""; }
+string BreakStatement::generate_llvm() {
+  string variable = create_break_var();
+  loop_stack.top()->add_break(variable);
+  string llvm_code = "";
+  llvm_code += "   br label %" + variable + "\n";
+  create_label(); // create the basic block after the break statement
+  return llvm_code;
+}
 
 string ReturnStatement::generate_llvm() {
   string llvm_code = "";

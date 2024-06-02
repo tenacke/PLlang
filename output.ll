@@ -40,7 +40,7 @@ define void @isprime() {
    %4 = load i32, i32* %1
    %5 = load i32, i32* @arg
    %6 = icmp slt i32 %4, %5
-   br i1 %6, label %7, label %18
+   br i1 %6, label %7, label %19
 7:
    %8 = load i32, i32* @arg
    %9 = load i32, i32* %1
@@ -51,15 +51,30 @@ define void @isprime() {
    store i32 0, i32* @ret
    %13 = load i32, i32* @arg
    store i32 %13, i32* %1
-   br label %17
+   br label %18
 14:
    %15 = load i32, i32* %1
    %16 = add i32 %15, 1
    store i32 %16, i32* %1
-   br label %17
-17:
-   br label %3
+   br label %19
+   br label %18
 18:
+   br label %3
+19:
+   store i32 5, i32* %2
+   br label %20
+20:
+   %21 = load i32, i32* %2
+   %22 = icmp slt i32 %21, 10
+   br i1 %22, label %23, label %28
+23:
+   %24 = load i32, i32* %2
+   %25 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @writeln.str, i32 0, i32 0), i32 %24)
+   %26 = load i32, i32* %2
+   %27 = add i32 %26, 1
+   store i32 %27, i32* %2
+   br label %20
+28:
    ret void
 }
 

@@ -18,9 +18,15 @@ begin
 		begin
 			ret := 0;
 			i := arg
-		end else
-		i :=  i + 1
-	end
+		end 
+		else
+		begin
+			i :=  i + 1;
+			break
+		end
+	end;
+	for a := 5 to 10 do
+	writeline(a)
 end;
 
 procedure primes;

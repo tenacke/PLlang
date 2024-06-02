@@ -567,6 +567,11 @@ public:
   string generate_llvm();
 };
 
+class BreakStatement : public Statement {
+public:
+  string generate_llvm();
+};
+
 class IfStatement
     : public Statement { // if (condition) then_statement else else_statement
 private:
@@ -583,7 +588,18 @@ public:
   string generate_llvm();
 };
 
-class WhileStatement : public Statement {
+class LoopStatement : public Statement {
+protected:
+  vector<string> break_statements;
+
+public:
+  void add_break(string break_statement) {
+    break_statements.push_back(break_statement);
+  };
+  bool has_break() { return break_statements.size() > 0; }
+};
+
+class WhileStatement : public LoopStatement {
 private:
   Condition *condition;
   Statement *statement;
@@ -596,7 +612,7 @@ public:
   string generate_llvm();
 };
 
-class ForStatement : public Statement {
+class ForStatement : public LoopStatement {
 private:
   PrimitiveNode *ID;
   Expression *start_expression;
@@ -638,11 +654,6 @@ private:
 
 public:
   WritelnStatement(void *ID) { this->ID = (IDNode *)ID; }
-  string generate_llvm();
-};
-
-class BreakStatement : public Statement {
-public:
   string generate_llvm();
 };
 
