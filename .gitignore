@@ -1,10 +1,11 @@
-lex
 mypl*
 parser.tab.*
 lex.yy.*
 *.o
 *.bc
 *.ll
+*.s
 test*
 main.c
+autom4te.cache/
 .vscode/

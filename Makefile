@@ -2,13 +2,13 @@ CC=g++
 LEX=flex
 YACC=bison
 CPPFLAGS=-Wall -Wextra -g -Ofast -fpermissive -std=c++17 
-LDFLAGS=-mmacosx-version-min=14.4 
+LDFLAGS=
 LEXFLAGS=--nomain
 BISONFLAGS=-Wcounterexamples -Wall -Wno-precedence -d
 
 
 mypl: parser.tab.o generator.o lex.yy.o
-	$(CC) $(CPPFLAGS) -o mypl lex.yy.o parser.tab.o generator.o $(LDFLAGS)
+	$(CC) $(CPPFLAGS) -o $@ lex.yy.o parser.tab.o generator.o $(LDFLAGS)
 
 parser.tab.o: parser.tab.c parser.tab.h
 	$(CC) $(CPPFLAGS) -c parser.tab.c

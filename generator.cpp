@@ -899,6 +899,9 @@ string WritelnStatement::generate_llvm() {
 
 string BreakStatement::generate_llvm() {
   string variable = create_break_var();
+  if (loop_stack.empty()) {
+    throw runtime_error("break statement not within a loop");
+  }
   loop_stack.top()->add_break(variable);
   string llvm_code = "";
   llvm_code += "   br label %" + variable + "\n";
