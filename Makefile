@@ -26,6 +26,6 @@ generator.o: generator.cpp defs.h generator.hpp
 	$(CC) $(CPPFLAGS) -c generator.cpp
 
 clean:
-	rm -f mypl lex.yy.c parser.tab.c parser.tab.h *.o
+	rm -f mypl lex.yy.c parser.tab.c parser.tab.h *.o *.s *.bc
 	if [ -d mypl.dSYM ]; then rm -rf mypl.dSYM; fi
 	

@@ -1,5 +1,6 @@
 #include "defs.h"
 #include "generator.hpp"
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -26,6 +27,7 @@ int variable_count = 0;
 int break_count = 0;
 
 int main(int argc, char *argv[]) {
+  bool optimize = false;
   // Usage: mypl [-O] <input_file>
   if (argc < 2) {
     printf("Usage: %s <input_file>\n", argv[0]);
@@ -34,12 +36,32 @@ int main(int argc, char *argv[]) {
     printf("Usage: %s <input_file>\n", argv[0]);
     exit(1);
   } else if (argc == 3) {
+    optimize = true;
     yyin = fopen(argv[2], "r");
   } else {
     yyin = fopen(argv[1], "r");
   }
   yyparse();
   fclose(yyin);
+  if (error) {
+    return 1;
+  }
+
+  if (optimize) {
+    if (system("opt -S -O3 prog.ll -o prog.ll") != 0) {
+      cout << "error: failed to optimize ir" << endl;
+      return 1;
+    };
+    system("llvm-as prog.ll -o prog.bc");
+    system("llc prog.bc -o prog.s");
+  } else {
+    if (system("opt -S -O0 prog.ll -o prog.ll") != 0) {
+      cout << "error: failed to validate ir" << endl;
+      return 1;
+    }
+    system("llvm-as prog.ll -o prog.bc");
+    system("llc prog.bc -o prog.s");
+  }
 }
 
 string create_variable() { return "%" + to_string(variable_count++); }
@@ -73,11 +95,11 @@ void generate_llvm_code(void *global_block) {
     return;
   }
   fstream file;
-  file.open("output.ll", ios::out);
+  file.open("prog.ll", ios::out);
   GlobalBlock *globalBlock = (GlobalBlock *)global_block;
   string llvm_code = globalBlock->generate_llvm();
   file << llvm_code;
-  cout << "llvm code generated to output.ll" << endl;
+  cout << "llvm ir code generated to prog.ll" << endl;
 }
 
 void *create_global_block(void *globalConstDecl, void *globalVarDecl,
