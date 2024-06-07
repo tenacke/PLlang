@@ -17,7 +17,11 @@ void set_error() { error = true; }
 
 extern FILE *yyin;
 extern int yyparse();
+void generate_llvm_code();
 
+GlobalBlock *global_block;
+
+string filename;
 stack<LoopStatement *> loop_stack;
 map<string, string> var_symbol_table;
 map<string, string> array_size_table;
@@ -30,37 +34,44 @@ int main(int argc, char *argv[]) {
   bool optimize = false;
   // Usage: mypl [-O] <input_file>
   if (argc < 2) {
-    printf("Usage: %s <input_file>\n", argv[0]);
+    cout << "Usage: mypl [-O] <input_file>\n";
     exit(1);
   } else if (argc == 3 && strcmp(argv[1], "-O") != 0) {
-    printf("Usage: %s <input_file>\n", argv[0]);
+    cout << "Usage: mypl [-O] <input_file>\n";
     exit(1);
   } else if (argc == 3) {
     optimize = true;
+    filename = argv[2];
     yyin = fopen(argv[2], "r");
   } else {
+    filename = argv[1];
     yyin = fopen(argv[1], "r");
   }
+  filename = filename.substr(0, filename.find_last_of("."));
   yyparse();
   fclose(yyin);
   if (error) {
+    cout << "error: failed to parse " << filename << endl;
     return 1;
   }
+  generate_llvm_code();
 
   if (optimize) {
-    if (system("opt -S -O3 prog.ll -o prog.ll") != 0) {
+    if (system(("opt -S -O3 " + filename + ".ll -o " + filename + ".ll")
+                   .c_str()) != 0) {
       cout << "error: failed to optimize ir" << endl;
       return 1;
     };
-    system("llvm-as prog.ll -o prog.bc");
-    system("llc prog.bc -o prog.s");
+    system(("llvm-as " + filename + ".ll -o " + filename + ".bc").c_str());
+    system(("llc " + filename + ".bc -o " + filename + ".s").c_str());
   } else {
-    if (system("opt -S -O0 prog.ll -o prog.ll") != 0) {
+    if (system(("opt -S -O0 " + filename + ".ll -o " + filename + ".ll")
+                   .c_str()) != 0) {
       cout << "error: failed to validate ir" << endl;
       return 1;
     }
-    system("llvm-as prog.ll -o prog.bc");
-    system("llc prog.bc -o prog.s");
+    system(("llvm-as " + filename + ".ll -o " + filename + ".bc").c_str());
+    system(("llc " + filename + ".bc -o " + filename + ".s").c_str());
   }
 }
 
@@ -89,17 +100,16 @@ string get_array_size(string text) { return array_size_table[text]; }
 
 void set_array_size(string text, string size) { array_size_table[text] = size; }
 
-void generate_llvm_code(void *global_block) {
-  if (error) {
-    cout << "error: terminated" << endl;
-    return;
-  }
+void generate_llvm_code() {
   fstream file;
-  file.open("prog.ll", ios::out);
-  GlobalBlock *globalBlock = (GlobalBlock *)global_block;
-  string llvm_code = globalBlock->generate_llvm();
+  file.open(filename + ".ll", ios::out);
+  string llvm_code = global_block->generate_llvm();
   file << llvm_code;
-  cout << "llvm ir code generated to prog.ll" << endl;
+  cout << "llvm ir code generated to " << filename << ".ll" << endl;
+}
+
+void create_program(void *globalBlock) {
+  global_block = (GlobalBlock *)globalBlock;
 }
 
 void *create_global_block(void *globalConstDecl, void *globalVarDecl,
@@ -469,6 +479,7 @@ string GlobalBlock::generate_llvm() {
   llvm_code += main_code;
 
   llvm_code += "define i32 @main() {\n";
+  create_label(); // create the initial label
   Statement *statement = (Statement *)this->statement;
   llvm_code += statement->generate_llvm();
   llvm_code += "   ret i32 0\n";
@@ -727,13 +738,15 @@ string StoreArrayStatement::generate_llvm() {
   Expression *expression = this->expression;
   llvm_code += index_expression->generate_llvm();
   llvm_code += expression->generate_llvm();
-  llvm_code += "   store i32 " + expression->get_variable() +
-               ", i32* getelementptr "
-               "inbounds ([" +
+
+  string temp = create_variable();
+  llvm_code += temp + " = getelementptr inbounds [" +
                get_array_size(this->ID->get_text()) + " x i32], [" +
                get_array_size(this->ID->get_text()) + " x i32]* " +
                get_variable(this->ID->get_text()) + ", i32 0, i32 " +
-               index_expression->get_variable() + ")\n";
+               index_expression->get_variable() + "\n";
+  llvm_code +=
+      "   store i32 " + expression->get_variable() + ", i32* " + temp + "\n";
   return llvm_code;
 }
 

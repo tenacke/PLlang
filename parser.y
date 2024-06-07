@@ -34,7 +34,7 @@ int yylex(void);
 %start program
 
 %%
-program: global_block DOT { generate_llvm_code($1); }
+program: global_block DOT { create_program($1); }
     | global_block error { yyerrok; }
     ;
 

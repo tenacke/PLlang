@@ -1,7 +1,7 @@
 void set_error();
 void *create_id(char *ID);
 void *create_num(char *NUM);
-void generate_llvm_code(void *global_block);
+void create_program(void *globalBlock);
 void *create_global_block(void *globalConstDecl, void *globalVarDecl,
                           void *funcDecl, void *procDecl, void *statement);
 void *create_simple_block(void *localConstDecl, void *localVarDecl,
